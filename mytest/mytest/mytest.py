@@ -32,11 +32,11 @@ def time_limit(seconds):
         t.cancel()
 
 
-def test(files, equal=check):
+def mytest(files, equal=check):
     def fun(f):
         def wrapper(*args, **kwargs):
             tests = range(files) if type(files) is int else files
-            FILE_LOCATION = "test/"
+            FILE_LOCATION = "mytest/"
             IN_FILENAME_SUFFIX = '_in.txt'
             OUT_FILENAME_SUFFIX = '_out.txt'
             COR_FILENAME_SUFFIX = '_cor.txt'
