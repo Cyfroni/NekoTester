@@ -1,6 +1,16 @@
 import sys
-from contextlib import contextmanager
-from threading import Timer
+import time
+
+
+
+
+
+# 2 2 3\///
+# 2 4 5\
+# 1 4\
+# 1 5\
+# 0\
+# 1')
 
 
 def check(file_out, file_cor):
@@ -19,20 +29,33 @@ class TimeoutException(Exception):
     pass
 
 
-@contextmanager
-def time_limit(seconds):
-    def handler():
-        raise TimeoutException("TIMED OUT[" + str(seconds) + " sec]")
+# #
+# # class MyTimer(Timer):
+# #     def __init__(self, *args):
+# #         Timer.__init__(self, *args)
+# #         self.ex = None
+# #
+# #     def run(self):
+# #         try:
+# #             super(MyTimer, self).run()
+# #         except Exception as e:
+# #             self.ex = e
+#
+# @contextmanager
+# def timer(seconds):
+#     def handler():
+#         raise TimeoutException("TIME LIMIT EXCEEDED[" + str(seconds) + " sec]")
+#
+#     t = Timer(seconds, handler)
+#     t.start()
+#     try:
+#         yield
+#     finally:
+#         t.cancel()
+#
 
-    t = Timer(seconds, handler)
-    t.start()
-    try:
-        yield
-    finally:
-        t.cancel()
 
-
-def mytest(files, equal=check):
+def mytest(files, time_limit=2.0, equal=check, generator=None):
     def fun(f):
         def wrapper(*args, **kwargs):
             tests = range(files) if type(files) is int else files
@@ -42,18 +65,32 @@ def mytest(files, equal=check):
             COR_FILENAME_SUFFIX = '_cor.txt'
             count = 0
             backup = sys.stdin, sys.stdout
+
             for test_number in tests:
                 _in = FILE_LOCATION + str(test_number) + IN_FILENAME_SUFFIX
                 _out = FILE_LOCATION + str(test_number) + OUT_FILENAME_SUFFIX
                 _cor = FILE_LOCATION + str(test_number) + COR_FILENAME_SUFFIX
-                with open(_in) as file_in, open(_out, 'w+') as file_out, open(_cor) as file_cor:
+                with open(_in, 'r' if generator is None else 'w+') as file_in, open(_out, 'w+') as file_out, open(
+                        _cor) as file_cor:
                     try:
                         sys.stdin, sys.stdout = file_in, file_out
-                        # start = time.time()
-                        with time_limit(4.0):
-                            f(*args, **kwargs)
-                        # end = time.time()
-                        print(f'{test_number}: {equal(file_out, file_cor)}', file=sys.stderr)
+
+                        if generator is not None:
+                            generator(file_in)
+                            file_in.seek(0)
+
+                        start = time.time()
+                        f(*args, **kwargs)
+                        period = time.time() - start
+
+                        if period > time_limit:
+                            raise TimeoutException(str(period) + " sec\n")
+                        print(f'{test_number}: {equal(file_out, file_cor)}, TIME: {period}', file=sys.stderr)
+
+                    except TimeoutException as e:
+                        print(f'{test_number}: TIME LIMIT EXCEEDED\nTIME: {e}\n###Passed[{count}]',
+                              file=sys.stderr, end='')
+                        break
                     except WrongAnswerException as e:
                         print(f'{test_number}: WRONG ANSWER\n{e}\n###Passed[{count}]',
                               file=sys.stderr, end='')
