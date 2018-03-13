@@ -1,16 +1,6 @@
+import os
 import sys
 import time
-
-
-
-
-
-# 2 2 3\///
-# 2 4 5\
-# 1 4\
-# 1 5\
-# 0\
-# 1')
 
 
 def check(file_out, file_cor):
@@ -54,30 +44,54 @@ class TimeoutException(Exception):
 #         t.cancel()
 #
 
+def neko_tester(files, time_limit=2.0, equal=check, generator=None, brute=None, path='0'):
+    if equal == 0:
+        def equal(x, y):
+            return True
+    if generator == 0:
+        generator = []
+    if brute == 0:
+        def brute():
+            pass
+    if type(files) is list:
+        generator = None
 
-def mytest(files, time_limit=2.0, equal=check, generator=None):
     def fun(f):
         def wrapper(*args, **kwargs):
             tests = range(files) if type(files) is int else files
-            FILE_LOCATION = "mytest/"
+            TESTS_LOCATION = "./tests/" + path + "/"
             IN_FILENAME_SUFFIX = '_in.txt'
             OUT_FILENAME_SUFFIX = '_out.txt'
             COR_FILENAME_SUFFIX = '_cor.txt'
+            if not os.path.exists(TESTS_LOCATION):
+                os.makedirs(TESTS_LOCATION)
             count = 0
             backup = sys.stdin, sys.stdout
 
             for test_number in tests:
-                _in = FILE_LOCATION + str(test_number) + IN_FILENAME_SUFFIX
-                _out = FILE_LOCATION + str(test_number) + OUT_FILENAME_SUFFIX
-                _cor = FILE_LOCATION + str(test_number) + COR_FILENAME_SUFFIX
-                with open(_in, 'r' if generator is None else 'w+') as file_in, open(_out, 'w+') as file_out, open(
-                        _cor) as file_cor:
+                _in = TESTS_LOCATION + str(test_number) + IN_FILENAME_SUFFIX
+                _out = TESTS_LOCATION + str(test_number) + OUT_FILENAME_SUFFIX
+                _cor = TESTS_LOCATION + str(test_number) + COR_FILENAME_SUFFIX
+                with open(_in, 'r' if generator is None else 'w+') as file_in, \
+                        open(_out, 'w+') as file_out, \
+                        open(_cor, 'r' if brute is None else 'w+') as file_cor:
                     try:
-                        sys.stdin, sys.stdout = file_in, file_out
-
                         if generator is not None:
-                            generator(file_in)
+                            if type(generator) is list:
+                                for line in generator:
+                                    line = ''.join([str(x) + ' ' for x in line]) + '\n'
+                                    file_in.write(line)
+                            else:
+                                for line in generator():
+                                    file_in.write(str(line) + '\n')
                             file_in.seek(0)
+                        if brute is not None:
+                            sys.stdin, sys.stdout = file_in, file_cor
+                            brute()
+                            file_cor.seek(0)
+                            file_in.seek(0)
+
+                        sys.stdin, sys.stdout = file_in, file_out
 
                         start = time.time()
                         f(*args, **kwargs)
@@ -98,7 +112,7 @@ def mytest(files, time_limit=2.0, equal=check, generator=None):
                     except Exception as e:
                         print(f'{test_number}: RUNTIME ERROR\n{type(e)}\n{e}\n###Passed[{count}]',
                               file=sys.stderr, end='')
-                        break
+                        raise e
                     finally:
                         count += 1
             else:
