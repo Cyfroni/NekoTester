@@ -10,11 +10,11 @@ except:
             return fun
 
 
-def brute():
+def brut():
     pass
 
 
-@mytest.neko_tester(100, equal=0, generator=0, brute=0)
+@mytest.neko_tester(100, brute=brut, equal=0, generator=0)
 def main():
     pass
 
